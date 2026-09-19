@@ -45,16 +45,21 @@ if ! command -v jq >/dev/null 2>&1; then
     fi
 fi
 
-#paths to the plugin and zsh configuration
+#paths to the source plugin, installed plugin and zsh configuration
+source_plugin_path="${0:A:h}/nexus.plugin.zsh"
 plugin_path="$HOME/Nexus/nexus.plugin.zsh"
 zshrc_path="$HOME/.zshrc"
 source_line='[[ -f "$HOME/Nexus/nexus.plugin.zsh" ]] && source "$HOME/Nexus/nexus.plugin.zsh"'
 
-#check that the plugin exists
-if [[ ! -f "$plugin_path" ]]; then
-    print -u2 "Error: plugin not found at $plugin_path"
+#check that the source plugin exists
+if [[ ! -f "$source_plugin_path" ]]; then
+    print -u2 "Error: plugin not found at $source_plugin_path"
     exit 1
 fi
+
+#copy the plugin to the installation directory
+mkdir -p "${plugin_path:h}"
+cp "$source_plugin_path" "$plugin_path"
 
 #create the zsh configuration if it does not exist
 touch "$zshrc_path"
