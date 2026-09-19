@@ -3,32 +3,32 @@
 #stop the script if an error occurs
 set -e
 
+#run a command with administrator privileges
+run_as_root() {
+    if (( EUID == 0 )); then
+        "$@"
+    elif command -v sudo >/dev/null 2>&1; then
+        sudo "$@"
+    else
+        return 1
+    fi
+}
+
 #install a package using the available package manager
 install_package() {
     local package="$1"
 
-    if (( EUID == 0 )); then
-        if command -v pacman >/dev/null 2>&1; then
-            pacman -S --needed --noconfirm "$package"
-        elif command -v apt-get >/dev/null 2>&1; then
-            apt-get update
-            apt-get install -y "$package"
-        elif command -v dnf >/dev/null 2>&1; then
-            dnf install -y "$package"
-        else
-            return 1
-        fi
-    elif command -v sudo >/dev/null 2>&1; then
-        if command -v pacman >/dev/null 2>&1; then
-            sudo pacman -S --needed --noconfirm "$package"
-        elif command -v apt-get >/dev/null 2>&1; then
-            sudo apt-get update
-            sudo apt-get install -y "$package"
-        elif command -v dnf >/dev/null 2>&1; then
-            sudo dnf install -y "$package"
-        else
-            return 1
-        fi
+    if command -v pacman >/dev/null 2>&1; then
+        run_as_root pacman -S --needed --noconfirm "$package"
+    elif command -v apt-get >/dev/null 2>&1; then
+        run_as_root apt-get update
+        run_as_root apt-get install -y "$package"
+    elif command -v dnf >/dev/null 2>&1; then
+        run_as_root dnf install -y "$package"
+    elif command -v apk >/dev/null 2>&1; then
+        run_as_root apk add "$package"
+    elif command -v zypper >/dev/null 2>&1; then
+        run_as_root zypper --non-interactive install "$package"
     elif command -v brew >/dev/null 2>&1; then
         brew install "$package"
     else
@@ -59,7 +59,9 @@ fi
 
 #copy the plugin to the installation directory
 mkdir -p "${plugin_path:h}"
-cp "$source_plugin_path" "$plugin_path"
+if ! cmp -s "$source_plugin_path" "$plugin_path" 2>/dev/null; then
+    cp "$source_plugin_path" "$plugin_path"
+fi
 
 #create the zsh configuration if it does not exist
 touch "$zshrc_path"
